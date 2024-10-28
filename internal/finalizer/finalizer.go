@@ -1,28 +1,27 @@
 package finalizer
 
 import (
-	"github.com/gennadyterekhov/levelslib/internal/collector"
-	"github.com/gennadyterekhov/levelslib/internal/data"
-	"github.com/gennadyterekhov/levelslib/internal/processor"
+	"go/ast"
+	"go/token"
+	"strings"
+
+	"github.com/gennadyterekhov/import-layers-go/internal/config"
 	"golang.org/x/tools/go/analysis"
 )
 
 type Finalizer struct {
-	Analyzer      *analysis.Analyzer
-	commonData    *data.CommonData
-	dataCollector *collector.Collector
+	Analyzer *analysis.Analyzer
+	config   *config.Config
 }
 
-func New(commonData *data.CommonData, dataCollector *collector.Collector) *Finalizer {
+func New(config *config.Config) *Finalizer {
 	inst := &Finalizer{
-		commonData:    commonData,
-		dataCollector: dataCollector,
+		config: config,
 	}
 	analyzer := &analysis.Analyzer{
-		Name:     "levels_finalizer",
-		Doc:      "report levels check",
-		Run:      inst.run,
-		Requires: []*analysis.Analyzer{dataCollector.Analyzer}, // ensures that collector will be run first
+		Name: "levels_finalizer",
+		Doc:  "report levels check",
+		Run:  inst.run,
 	}
 	inst.Analyzer = analyzer
 
@@ -30,10 +29,53 @@ func New(commonData *data.CommonData, dataCollector *collector.Collector) *Final
 }
 
 func (f *Finalizer) run(pass *analysis.Pass) (interface{}, error) {
-
-	err := processor.ProcessImports(f.commonData)
-	if err != nil {
-		pass.Reportf(1, err.Error())
+	if pass.Pkg == nil {
+		return nil, nil
 	}
+	pkgPath := pass.Pkg.Path()
+
+	currentLayer := f.config.GetLayer(pkgPath)
+	for _, file := range pass.Files {
+
+		if file.Name == nil {
+			return nil, nil
+		}
+
+		ast.Inspect(file, func(node ast.Node) bool {
+			typedNode, ok := node.(*ast.File)
+			if !ok {
+				return true
+			}
+
+			for _, importNode := range typedNode.Imports {
+				ok, pos := f.inspectImport(importNode, currentLayer)
+
+				if !ok {
+					pass.Reportf(
+						pos,
+						"wrong level. cannot import %s from \"%s\"",
+						importNode.Path.Value,
+						pkgPath,
+					)
+				}
+			}
+
+			return true
+		})
+	}
+
 	return nil, nil
+}
+
+func (f *Finalizer) inspectImport(importNode *ast.ImportSpec, currentLayer int) (bool, token.Pos) {
+	if importNode != nil && importNode.Path != nil {
+		importedPkgPath := strings.Trim(importNode.Path.Value, "\"")
+
+		layer := f.config.GetLayer(importedPkgPath)
+
+		if layer != 0 && layer < currentLayer {
+			return false, importNode.Pos()
+		}
+	}
+	return true, 0
 }

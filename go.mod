@@ -1,4 +1,4 @@
-module github.com/gennadyterekhov/levelslib
+module github.com/gennadyterekhov/import-layers-go
 
 go 1.23.0
 

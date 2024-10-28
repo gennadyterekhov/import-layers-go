@@ -1,3 +1,4 @@
+// Package data  used only in tests
 package data
 
 import (
