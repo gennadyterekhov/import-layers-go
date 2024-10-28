@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gennadyterekhov/levelslib/internal/analyzer"
-	"golang.org/x/tools/go/analysis"
+	"github.com/gennadyterekhov/levelslib/internal/collector"
+	"github.com/gennadyterekhov/levelslib/internal/data"
+	"github.com/gennadyterekhov/levelslib/internal/finalizer"
 	"golang.org/x/tools/go/analysis/multichecker"
 )
 
@@ -27,8 +28,12 @@ type Config struct {
 func main() {
 	// cfg := getConfig()
 
+	commonData := data.New()
+	dataCollector := collector.New(commonData)
+	finalizerAnalyzer := finalizer.New(commonData, dataCollector)
+
 	multichecker.Main(
-		getAnalyzers(nil)...,
+		finalizerAnalyzer.Analyzer,
 	)
 }
 
@@ -48,12 +53,4 @@ func getConfig() *Config {
 		panic(err)
 	}
 	return &cfg
-}
-
-func getAnalyzers(cfg *Config) []*analysis.Analyzer {
-	checks := []*analysis.Analyzer{
-		analyzer.New(),
-	}
-
-	return checks
 }
