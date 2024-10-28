@@ -1,0 +1,14 @@
+{
+    "ReportUnleveled": true,
+    "ModeNumbers": "numbers",
+    "Levels": [
+        {
+            "Name": "Domain",
+            "Order": 10
+        },
+        {
+            "Name": "UI",
+            "Order": 0
+        }
+    ]
+}
