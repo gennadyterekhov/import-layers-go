@@ -27,12 +27,12 @@ type Config struct {
 }
 
 func FromFile() *Config {
-	confPath, err := getFullConfigPath()
+	absolutePathToConfig, err := getFullConfigPath()
 	if err != nil {
 		panic(err)
 	}
 
-	rawFile, err := os.ReadFile(confPath)
+	rawFile, err := os.ReadFile(absolutePathToConfig)
 	if err != nil {
 		panic(err)
 	}
