@@ -12,12 +12,14 @@ import (
 const fileName = `import_layers.yaml`
 
 type yamlConfig struct {
+	Debug                          bool     `yaml:"Debug"`
 	ReportDirsWithoutAssignedLayer bool     `yaml:"ReportDirsWithoutAssignedLayer"`
 	OnlyAdjacent                   bool     `yaml:"OnlyAdjacent"`
 	Layers                         []string `yaml:"Layers"`
 }
 
 type Config struct {
+	debug                          bool
 	reportDirsWithoutAssignedLayer bool
 	onlyAdjacent                   bool
 	layers                         map[string]int // keys are substrings of pkg paths
@@ -43,6 +45,7 @@ func FromFile() *Config {
 	var cfg Config
 	cfg.layers = make(map[string]int, 0)
 	cfg.reportDirsWithoutAssignedLayer = yamlCfg.ReportDirsWithoutAssignedLayer
+	cfg.debug = yamlCfg.Debug
 
 	ln := len(yamlCfg.Layers)
 	for i, layer := range yamlCfg.Layers {
@@ -87,4 +90,8 @@ func (c *Config) GetLayer(fullPkgName string) int {
 		}
 	}
 	return 0
+}
+
+func (c *Config) Debug() bool {
+	return c.debug
 }

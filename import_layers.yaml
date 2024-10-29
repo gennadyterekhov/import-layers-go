@@ -1,4 +1,5 @@
 {
+  "Debug": true,
   "Layers": [
     "internal/project",
     "internal/data",
