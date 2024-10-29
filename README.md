@@ -1,6 +1,6 @@
 # import-layers-go
 
-idea is to enforce abstraction levels / layers so that they don't mix up and you can create coherent layered architecture
+idea is to enforce abstraction layers so that they don't mix up and you can create coherent layered architecture
 
 
 ## running in your repo

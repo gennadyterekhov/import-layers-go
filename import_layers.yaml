@@ -3,6 +3,6 @@
     "internal/project",
     "internal/data",
     "internal/config",
-    "internal/finalizer",
+    "internal/analyzer",
   ]
 }

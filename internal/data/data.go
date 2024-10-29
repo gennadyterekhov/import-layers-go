@@ -6,15 +6,15 @@ import (
 )
 
 type CommonData struct {
-	pakToLev map[string]int
-	deptree  map[string][]string
-	lock     sync.Mutex
+	packageToLayer map[string]int
+	deptree        map[string][]string
+	lock           sync.Mutex
 }
 
 func New() *CommonData {
 	return &CommonData{
-		pakToLev: make(map[string]int, 0),
-		deptree:  make(map[string][]string, 0),
+		packageToLayer: make(map[string]int, 0),
+		deptree:        make(map[string][]string, 0),
 	}
 }
 
@@ -24,14 +24,14 @@ func (cd *CommonData) AddImport(pkgPath, imported string) {
 	cd.lock.Unlock()
 }
 
-func (cd *CommonData) AddPackage(pkgPath string, level int) {
+func (cd *CommonData) AddPackage(pkgPath string, layer int) {
 	cd.lock.Lock()
-	cd.pakToLev[pkgPath] = level
+	cd.packageToLayer[pkgPath] = layer
 	cd.lock.Unlock()
 }
 
-func (cd *CommonData) PakToLev() map[string]int {
-	return cd.pakToLev
+func (cd *CommonData) PackageToLayer() map[string]int {
+	return cd.packageToLayer
 }
 
 func (cd *CommonData) Deptree() map[string][]string {
