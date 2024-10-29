@@ -1,7 +1,0 @@
-{
-    "reportUnleveled": true,
-    "mode": "numbers",
-    "levels": {
-        "infra": 1
-    }
-}

@@ -1,0 +1,16 @@
+{
+  "ReportDirsWithoutAssignedLayer": true,
+  "OnlyAdjacent": true,
+  "Layers": [
+    "internal/project",
+    "internal/data",
+    "internal/config",
+    "internal/finalizer",
+
+
+    "examples/basic/high",
+    "examples/basic/low",
+
+
+  ]
+}
