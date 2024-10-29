@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
 func GetProjectRoot() (string, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", fmt.Errorf("unable to get caller information")
+	// Start from the current working directory.
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("unable to get current working directory: %w", err)
 	}
 
 	// Iterate up the directory tree until we find go.mod
-	currentDir := filepath.Dir(filename)
 	for {
 		goModPath := filepath.Join(currentDir, "go.mod")
 		if _, err := os.Stat(goModPath); err == nil { // go.mod exists
