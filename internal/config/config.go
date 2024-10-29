@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,6 +43,11 @@ func FromFile() *Config {
 		panic(err)
 	}
 
+	if yamlCfg.Debug {
+		fmt.Println("creating config from file")
+		fmt.Println("raw Layers from yaml", yamlCfg.Layers)
+	}
+
 	var cfg Config
 	cfg.layers = make(map[string]int, 0)
 	cfg.reportDirsWithoutAssignedLayer = yamlCfg.ReportDirsWithoutAssignedLayer
@@ -50,6 +56,11 @@ func FromFile() *Config {
 	ln := len(yamlCfg.Layers)
 	for i, layer := range yamlCfg.Layers {
 		cfg.layers[layer] = ln - i
+	}
+
+	if yamlCfg.Debug {
+		fmt.Println("processed layers into map")
+		fmt.Println("final Layers map", cfg.Layers())
 	}
 
 	return &cfg
@@ -90,6 +101,10 @@ func (c *Config) GetLayer(fullPkgName string) int {
 		}
 	}
 	return 0
+}
+
+func (c *Config) Layers() map[string]int {
+	return c.layers
 }
 
 func (c *Config) Debug() bool {
