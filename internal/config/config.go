@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const fileName = `config.yaml`
+const fileName = `import_layers.yaml`
 
 type yamlConfig struct {
 	ReportDirsWithoutAssignedLayer bool     `yaml:"ReportDirsWithoutAssignedLayer"`

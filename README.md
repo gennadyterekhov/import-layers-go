@@ -1,17 +1,15 @@
 # import-layers-go
 
-idea is to enforce abstraction levels / layers so that they dont mix up and you cna create coherent layered architecture
+idea is to enforce abstraction levels / layers so that they don't mix up and you can create coherent layered architecture
 
 
+## running in your repo
 
-## linting & static checks
+download bin from releases and place it in `analyzers` for example  
+run
 
+    ./analyzers/import-layers-go ../...
 
-custom multichecker:
+## config
 
-      cd cmd 
-      go run . ../... &> ../reports/report.txt
-
-or
-
-      ./cmd/import-layers-go ./... &> reports/report.txt
+see example config in [examples/basic/import_layers.yaml ](https://github.com/gennadyterekhov/import-layers-go/blob/main/examples/basic/import_layers.yaml)

@@ -1,0 +1,8 @@
+{
+  "Layers": [
+    "internal/project",
+    "internal/data",
+    "internal/config",
+    "internal/finalizer",
+  ]
+}

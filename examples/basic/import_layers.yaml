@@ -1,0 +1,10 @@
+# example config
+{
+  # list of dirs from high abstraction to low level. low can depend on high. high cannot depend on low
+  "Layers": [
+    "high",
+    "low",
+
+    # unlisted packages are ignored, and everyone can depend on them
+  ]
+}
