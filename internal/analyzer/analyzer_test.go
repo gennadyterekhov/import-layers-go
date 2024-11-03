@@ -35,5 +35,5 @@ func TestReportWhenLowImportedByHigh(t *testing.T) {
 		diag = results[0].Diagnostics[0]
 	}
 
-	assert.Equal(t, `wrong layer. cannot import "low" from "high"`, diag.Message)
+	assert.Equal(t, `cannot import package from lower layer`, diag.Message)
 }

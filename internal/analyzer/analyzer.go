@@ -59,9 +59,7 @@ func (f *Analyzer) run(pass *analysis.Pass) (interface{}, error) {
 				if !ok {
 					pass.Reportf(
 						pos,
-						"wrong layer. cannot import %s from \"%s\"",
-						importNode.Path.Value,
-						pkgPath,
+						"cannot import package from lower layer",
 					)
 				}
 			}

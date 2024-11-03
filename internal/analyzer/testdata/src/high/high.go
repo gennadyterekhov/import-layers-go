@@ -1,7 +1,7 @@
 package high
 
 import (
-	"low" // want `wrong layer. cannot import "low" from "high"`
+	"low" // want `cannot import package from lower layer`
 )
 
 func Fn() {

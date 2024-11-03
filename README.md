@@ -1,7 +1,17 @@
 # import-layers-go
 
-idea is to enforce abstraction layers so that they don't mix up and you can create coherent layered architecture
+import-layers-go is a golang checker to enforce abstraction layers
+so that they don't mix up, and you can create coherent layered architecture  
+  
+in other words - check that higher layer packages do not depend on lower layer packages (dependency rule from clean architecture)
 
+## example
+
+    package high
+
+    import (
+    "low" ` returns error: wrong layer. cannot import
+    )
 
 ## running in your repo
 
