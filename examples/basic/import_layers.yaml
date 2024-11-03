@@ -1,9 +1,15 @@
 # example config
 {
-  # list of dirs from high abstraction to low level. low can depend on high. high cannot depend on low
+  # list of dirs from high abstraction to low level. low can depend on high. high cannot depend on low.
+  # each entry is a substring of the full package name (with path).
   "Layers": [
     "high",
     "low",
+
+    # "internal/this/can/be/long",
+    # "github.com/can/be/full/path",
+
+    # "fmt", # works with 3rd party packages too
 
     # unlisted packages are ignored, and everyone can depend on them
   ]

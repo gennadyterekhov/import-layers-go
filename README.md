@@ -7,10 +7,22 @@ in other words - check that higher layer packages do not depend on lower layer p
 
 ## example
 
+config
+
+    {
+        "Layers": [
+            "high",
+            "low",
+        ]
+    }
+
+
+go
+
     package high
 
     import (
-    "low" ` returns error: wrong layer. cannot import
+        "low" // returns error: `cannot import package from lower layer`
     )
 
 ## running in your repo
@@ -18,8 +30,12 @@ in other words - check that higher layer packages do not depend on lower layer p
 download bin from releases and place it in `analyzers` for example  
 run
 
-    ./analyzers/import-layers-go ../...
+    ./analyzers/import-layers-go ./...
 
 ## config
 
-see example config in [examples/basic/import_layers.yaml ](https://github.com/gennadyterekhov/import-layers-go/blob/main/examples/basic/import_layers.yaml)
+See example config in [examples/basic/import_layers.yaml ](https://github.com/gennadyterekhov/import-layers-go/blob/main/examples/basic/import_layers.yaml)  
+Config file must be in the same directory as a `go.mod` file.  
+It must be named `import_layers.yaml`.  
+Config file name and location are not configurable.  
+
