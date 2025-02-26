@@ -1,6 +1,6 @@
 
 build:
-	go build -o=analyzers/import-layers-go cmd/main.go
+	go build -o=analyzers/ilg cmd/main.go
 
 build_all:
 	GOOS=linux GOARCH=amd64 go build  -o ./dist/import_layers_linux_amd64  ./cmd/main.go
