@@ -2,11 +2,13 @@ package analyzer
 
 import (
 	"fmt"
-	"go/ast"
-	"go/token"
+	"go/types"
+	"slices"
 	"strings"
 
 	"github.com/gennadyterekhov/import-layers-go/internal/config"
+	"github.com/gennadyterekhov/import-layers-go/internal/filechecker"
+	"github.com/gennadyterekhov/import-layers-go/internal/reporter"
 	"golang.org/x/tools/go/analysis"
 )
 
@@ -38,53 +40,56 @@ func (f *Analyzer) run(pass *analysis.Pass) (interface{}, error) {
 	currentLayer := f.config.GetLayer(pkgPath)
 
 	if f.config.Debug() {
-		fmt.Println("Analyzer.run", "pkgPath", pkgPath, "currentLayer", currentLayer)
+		fmt.Printf("\nAnalyzer.run pkgName: %v  pkgPath: %v  layer: %v\nignoreTests: %v\n", pass.Pkg.Name(), pkgPath, currentLayer, f.config.IgnoreTests())
+
+		//err := ast.Print(pass.Fset, pass.Pkg)
+		//if err != nil {
+		//	return nil, fmt.Errorf("could not print ast")
+		//}
 	}
 
-	for _, file := range pass.Files {
+	if currentLayer == 0 { //can import anything from layer 0
+		return nil, nil
+	}
 
-		if file.Name == nil {
+	pkgImports := getPkgImports(pass.Pkg)
+	// TODO optimize to look for testing in the first place, in one traversal. implement after benchmark
+	if slices.Contains(pkgImports, "testing") {
+		if f.config.IgnoreTests() {
+			if f.config.Debug() {
+				fmt.Println("    this fileSet contains a test , ignoring")
+			}
 			return nil, nil
 		}
 
-		ast.Inspect(file, func(node ast.Node) bool {
-			typedNode, ok := node.(*ast.File)
-			if !ok {
-				return true
-			}
+		if f.config.Debug() {
+			fmt.Println("    this fileSet contains a test")
+		}
+	}
 
-			for _, importNode := range typedNode.Imports {
-				ok, pos := f.inspectImport(importNode, currentLayer)
+	rep := reporter.New(pass.Reportf)
+	fchecker := filechecker.New(rep, currentLayer, f.config)
 
-				if !ok {
-					pass.Reportf(
-						pos,
-						"cannot import package from lower layer",
-					)
-				}
-			}
-
-			return true
-		})
+	for _, file := range pass.Files {
+		fchecker.CheckFile(file)
 	}
 
 	return nil, nil
 }
 
-func (f *Analyzer) inspectImport(importNode *ast.ImportSpec, currentLayer int) (bool, token.Pos) {
-	if importNode != nil && importNode.Path != nil {
-		importedPkgPath := strings.Trim(importNode.Path.Value, "\"")
-
-		layer := f.config.GetLayer(importedPkgPath)
-
-		if f.config.Debug() && importNode != nil && importNode.Path != nil {
-			fmt.Println("    importedPkgPath", importedPkgPath, "layer", layer)
-		}
-
-		if layer != 0 && layer < currentLayer {
-			return false, importNode.Pos()
-		}
+func getPkgImports(file *types.Package) []string {
+	empty := make([]string, 0)
+	if file == nil {
+		return empty
 	}
 
-	return true, 0
+	for _, v := range file.Imports() {
+		if v == nil {
+			continue
+		}
+
+		empty = append(empty, strings.Trim(v.Path(), "\""))
+	}
+
+	return empty
 }

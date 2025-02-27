@@ -37,3 +37,45 @@ func TestReportWhenLowImportedByHigh(t *testing.T) {
 
 	assert.Equal(t, `cannot import package from lower layer`, diag.Message)
 }
+
+func TestReportSeveral(t *testing.T) {
+
+	commonData := data.New()
+	commonData.AddPackage("highmid", 10)
+	commonData.AddPackage("mid", 7)
+	commonData.AddPackage("low", 5)
+
+	cfg := config.FromMap(commonData.PackageToLayer())
+
+	results := analysistest.Run(t, analysistest.TestData(), New(cfg).Analyzer, "low", "mid", "highmid")
+
+	require.Equal(t, 3, len(results))
+	count := 0
+	for _, v := range results {
+		if len(v.Diagnostics) != 0 {
+			for _, d := range v.Diagnostics {
+				count++
+				assert.Equal(t, `cannot import package from lower layer`, d.Message)
+			}
+		}
+	}
+	assert.Equal(t, 2, count)
+}
+
+func TestReportTestFileWhenLowImportedByHigh(t *testing.T) {
+	commonData := data.New()
+	commonData.AddPackage("hightest", 10)
+	commonData.AddPackage("low", 5)
+
+	cfg := config.FromMap(commonData.PackageToLayer())
+
+	results := analysistest.Run(t, analysistest.TestData(), New(cfg).Analyzer, "low", "hightest")
+	count := 0
+	for _, v := range results {
+		for _, d := range v.Diagnostics {
+			count++
+			assert.Equal(t, `cannot import package from lower layer`, d.Message)
+		}
+	}
+	assert.Equal(t, 1, count)
+}

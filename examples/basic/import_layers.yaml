@@ -2,7 +2,7 @@
 {
   # list of dirs from high abstraction to low level. low can depend on high. high cannot depend on low.
   # each entry is a substring of the full package name (with path).
-  "Layers": [
+  "layers": [
     "high",
     "low",
 

@@ -13,84 +13,70 @@ import (
 const fileName = `import_layers.yaml`
 
 type yamlConfig struct {
-	Debug                          bool     `yaml:"Debug"`
-	ReportDirsWithoutAssignedLayer bool     `yaml:"ReportDirsWithoutAssignedLayer"`
-	OnlyAdjacent                   bool     `yaml:"OnlyAdjacent"`
-	Layers                         []string `yaml:"Layers"`
+	IgnoreTests bool     `yaml:"ignore_tests"`
+	Debug       bool     `yaml:"debug"`
+	Layers      []string `yaml:"layers"`
 }
 
 type Config struct {
-	debug                          bool
-	reportDirsWithoutAssignedLayer bool
-	onlyAdjacent                   bool
-	layers                         map[string]int // keys are substrings of pkg paths
+	debug       bool
+	ignoreTests bool
+	layers      map[string]int // keys are substrings of pkg paths
 }
 
-func FromFile() *Config {
+func FromFile() (*Config, error) {
 	absolutePathToConfig, err := getFullConfigPath()
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("could not get path to config")
 	}
 
 	rawFile, err := os.ReadFile(absolutePathToConfig)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("config file %v could not be read", absolutePathToConfig)
 	}
 
 	var yamlCfg yamlConfig
 
 	if err = yaml.Unmarshal(rawFile, &yamlCfg); err != nil {
-		panic(err)
-	}
-
-	if yamlCfg.Debug {
-		fmt.Println("creating config from file")
-		fmt.Println("raw Layers from yaml", yamlCfg.Layers)
+		return nil, fmt.Errorf("config file %v could not be decoded from yaml", absolutePathToConfig)
 	}
 
 	var cfg Config
-	cfg.layers = make(map[string]int, 0)
-	cfg.reportDirsWithoutAssignedLayer = yamlCfg.ReportDirsWithoutAssignedLayer
+	cfg.layers = make(map[string]int)
 	cfg.debug = yamlCfg.Debug
+	// don't read it from config so it's always false
+	//cfg.ignoreTests = yamlCfg.IgnoreTests
 
 	ln := len(yamlCfg.Layers)
 	for i, layer := range yamlCfg.Layers {
 		cfg.layers[layer] = ln - i
 	}
 
-	if yamlCfg.Debug {
-		fmt.Println("processed layers into map")
-		fmt.Println("final Layers map", cfg.Layers())
-	}
-
-	return &cfg
+	return &cfg, nil
 }
 
 func FromMap(layers map[string]int) *Config {
 	var cfg Config
-	cfg.reportDirsWithoutAssignedLayer = true
 	cfg.layers = layers
-
+	cfg.debug = true
 	return &cfg
 }
 
-func getFullConfigPath() (string, error) {
-	rootDir, err := project.GetProjectRoot()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(
-		rootDir, fileName,
-	), nil
+func (c *Config) SetIgnoreTests(v bool) *Config {
+	c.ignoreTests = v
+	return c
 }
 
 func (c *Config) ReportDirsWithoutAssignedLayer() bool {
-	return c.reportDirsWithoutAssignedLayer
+	return false
 }
 
 func (c *Config) OnlyAdjacent() bool {
-	return c.onlyAdjacent
+	return false
+}
+
+func (c *Config) IgnoreTests() bool {
+	return c.ignoreTests
 }
 
 // GetLayer yes this is O(n). returns 0 only if fullPkgName is not in config (ignored)
@@ -109,4 +95,15 @@ func (c *Config) Layers() map[string]int {
 
 func (c *Config) Debug() bool {
 	return c.debug
+}
+
+func getFullConfigPath() (string, error) {
+	rootDir, err := project.GetProjectRoot()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(
+		rootDir, fileName,
+	), nil
 }

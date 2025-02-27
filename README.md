@@ -10,7 +10,7 @@ in other words - check that higher layer packages do not depend on lower layer p
 config
 
     {
-        "Layers": [
+        "layers": [
             "high",
             "low",
         ]

@@ -1,9 +1,11 @@
 {
-  "Debug": true,
-  "Layers": [
+  "debug": false,
+  "layers": [
     "internal/project",
     "internal/data",
     "internal/config",
+    "internal/reporter",
+    "internal/filechecker",
     "internal/analyzer",
   ]
 }
