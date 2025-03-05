@@ -1,0 +1,4 @@
+package high
+
+func Fn() {
+}
