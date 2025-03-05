@@ -3,7 +3,6 @@ package filechecker
 import (
 	"fmt"
 	"go/ast"
-	"slices"
 	"strings"
 
 	"github.com/gennadyterekhov/import-layers-go/internal/config"
@@ -36,19 +35,19 @@ func (fc *FileChecker) CheckFile(file *ast.File) {
 		fmt.Println("  checking file ", file.Name.String())
 	}
 
-	// TODO optimize to look for testing in the first place, in one traversal. implement after benchmark
-	if slices.Contains(getImports(file), "testing") {
-		if fc.conf.IgnoreTests() {
-			if fc.conf.Debug() {
-				fmt.Println("    this file is a test , ignoring")
-			}
-			return
-		}
-
-		if fc.conf.Debug() {
-			fmt.Println("    this file is a test")
-		}
-	}
+	//// TODO optimize to look for testing in the first place, in one traversal. implement after benchmark
+	//if slices.Contains(getImports(file), "testing") {
+	//	if fc.conf.IgnoreTests() {
+	//		if fc.conf.Debug() {
+	//			fmt.Println("    this file is a test , ignoring")
+	//		}
+	//		return
+	//	}
+	//
+	//	if fc.conf.Debug() {
+	//		fmt.Println("    this file is a test")
+	//	}
+	//}
 
 	ast.Inspect(file, fc.inspectAst)
 }
@@ -75,12 +74,12 @@ func (fc *FileChecker) inspectAst(node ast.Node) bool {
 		if importNode != nil && importNode.Path != nil {
 			importedPkgPath := strings.Trim(importNode.Path.Value, "\"")
 
-			if fc.conf.IgnoreTests() && importedPkgPath == "testing" {
-				if fc.conf.Debug() {
-					fmt.Println("    caught import testing when ignoring tests. skipping file")
-				}
-				return true
-			}
+			//if fc.conf.IgnoreTests() && importedPkgPath == "testing" {
+			//	if fc.conf.Debug() {
+			//		fmt.Println("    caught import testing when ignoring tests. skipping file")
+			//	}
+			//	return true
+			//}
 
 			importOk = checkImport(fc.currentLayer, importedPkgPath, fc.conf.GetLayer)
 			if !importOk {

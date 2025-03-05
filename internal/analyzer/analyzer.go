@@ -3,7 +3,6 @@ package analyzer
 import (
 	"fmt"
 	"go/types"
-	"slices"
 	"strings"
 
 	"github.com/gennadyterekhov/import-layers-go/internal/config"
@@ -52,20 +51,20 @@ func (f *Analyzer) run(pass *analysis.Pass) (interface{}, error) {
 		return nil, nil
 	}
 
-	pkgImports := getPkgImports(pass.Pkg)
-	// TODO optimize to look for testing in the first place, in one traversal. implement after benchmark
-	if slices.Contains(pkgImports, "testing") {
-		if f.config.IgnoreTests() {
-			if f.config.Debug() {
-				fmt.Println("    this fileSet contains a test , ignoring")
-			}
-			return nil, nil
-		}
-
-		if f.config.Debug() {
-			fmt.Println("    this fileSet contains a test")
-		}
-	}
+	//pkgImports := getPkgImports(pass.Pkg)
+	//// TODO optimize to look for testing in the first place, in one traversal. implement after benchmark
+	//if slices.Contains(pkgImports, "testing") {
+	//	if f.config.IgnoreTests() {
+	//		if f.config.Debug() {
+	//			fmt.Println("    this fileSet contains a test , ignoring")
+	//		}
+	//		return nil, nil
+	//	}
+	//
+	//	if f.config.Debug() {
+	//		fmt.Println("    this fileSet contains a test")
+	//	}
+	//}
 
 	rep := reporter.New(pass.Reportf)
 	fchecker := filechecker.New(rep, currentLayer, f.config)
