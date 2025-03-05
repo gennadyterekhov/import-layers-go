@@ -66,7 +66,7 @@ func TestCanIgnoreWhenWholeRun(t *testing.T) {
 		{true, true, true, 0},
 	}
 
-	for i, c := range cases {
+	for _, c := range cases {
 
 		commonData := data.New()
 		commonData.AddPackage("koko", 10)
