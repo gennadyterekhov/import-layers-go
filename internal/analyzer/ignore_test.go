@@ -67,7 +67,6 @@ func TestCanIgnoreWhenWholeRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		fmt.Println("===test ", i)
 
 		commonData := data.New()
 		commonData.AddPackage("koko", 10)
@@ -109,7 +108,6 @@ func TestCanIgnoreWhenWholeRun(t *testing.T) {
 
 		}
 		require.Equal(t, c.expectedNumberOrReports, diagCnt)
-		fmt.Println("test ", i, " ok")
 	}
 }
 
