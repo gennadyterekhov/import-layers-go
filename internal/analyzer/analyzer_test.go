@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/gennadyterekhov/import-layers-go/internal/config"
-	"github.com/gennadyterekhov/import-layers-go/internal/data"
+	"github.com/gennadyterekhov/import-layers-go/internal/layers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/analysis"
@@ -14,11 +14,7 @@ import (
 func TestReportWhenLowImportedByHigh(t *testing.T) {
 	var result analysistest.Result
 
-	commonData := data.New()
-	commonData.AddPackage("high", 10)
-	commonData.AddPackage("low", 5)
-
-	cfg := config.FromMap(commonData.PackageToLayer())
+	cfg := &config.Config{Layers: layers.New([]string{"high", "low"})}
 
 	results := analysistest.Run(t, analysistest.TestData(), New(cfg).Analyzer, "low", "high")
 
@@ -40,12 +36,7 @@ func TestReportWhenLowImportedByHigh(t *testing.T) {
 
 func TestReportSeveral(t *testing.T) {
 
-	commonData := data.New()
-	commonData.AddPackage("highmid", 10)
-	commonData.AddPackage("mid", 7)
-	commonData.AddPackage("low", 5)
-
-	cfg := config.FromMap(commonData.PackageToLayer())
+	cfg := &config.Config{Layers: layers.New([]string{"highmid", "mid", "low"})}
 
 	results := analysistest.Run(t, analysistest.TestData(), New(cfg).Analyzer, "low", "mid", "highmid")
 
@@ -63,11 +54,7 @@ func TestReportSeveral(t *testing.T) {
 }
 
 func TestReportTestFileWhenLowImportedByHigh(t *testing.T) {
-	commonData := data.New()
-	commonData.AddPackage("hightest", 10)
-	commonData.AddPackage("low", 5)
-
-	cfg := config.FromMap(commonData.PackageToLayer())
+	cfg := &config.Config{Layers: layers.New([]string{"hightest", "low"})}
 
 	results := analysistest.Run(t, analysistest.TestData(), New(cfg).Analyzer, "low", "hightest")
 	count := 0

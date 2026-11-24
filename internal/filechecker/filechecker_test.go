@@ -3,98 +3,27 @@ package filechecker
 import (
 	"go/parser"
 	"go/token"
+	"strings"
 	"testing"
-
-	"github.com/gennadyterekhov/import-layers-go/internal/config"
-	"github.com/gennadyterekhov/import-layers-go/internal/data"
-	"github.com/gennadyterekhov/import-layers-go/internal/reporter"
-	"github.com/stretchr/testify/require"
 )
 
-const highTestSrc = `
-		package high
-		
-		import (
-			"low"
-			"testing"
-		)
-		
-		func TestFn(t *testing.T) {
-			low.Fn()
-		}
-    `
-
-const highSrc = `
-		package high
-		
-		import (
-			"low"
-		)
-		
-		func Fn() {
-			low.Fn()
-		}
-    `
-
-const lowSrc = `
-		package low
-		
-		import "fmt"
-		
-		func Fn() {
-			fmt.Println("low")
-		}
-    `
-
-func TestCorrect(t *testing.T) {
-
-	cfg := getConfig()
-
+func TestImportsPreservePathsAndPositions(t *testing.T) {
+	source := "package high\n\nimport (\n  _ \"low/path\"\n  alias `other/path`\n)\n"
 	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "high.go", source, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	nodeLow, err := parser.ParseFile(fset, "low.go", lowSrc, 0)
-	require.NoError(t, err)
-	nodeHigh, err := parser.ParseFile(fset, "high.go", correctHighSrc, 0)
-	require.NoError(t, err)
-	nodeHighTest, err := parser.ParseFile(fset, "high_test.go", correctHighTestSrc, 0)
-	require.NoError(t, err)
-
-	rep := reporter.NewMock()
-	pass := New(rep, cfg.GetLayer("high"), cfg)
-	pass.CheckFile(nodeLow)
-	pass.CheckFile(nodeHigh)
-	pass.CheckFile(nodeHighTest)
-
-	require.Equal(t, 0, len(rep.GetReports()))
-}
-
-func TestWrongWithTest(t *testing.T) {
-	cfg := getConfig()
-
-	fset := token.NewFileSet()
-
-	nodeLow, err := parser.ParseFile(fset, "low.go", lowSrc, 0)
-	require.NoError(t, err)
-	nodeHigh, err := parser.ParseFile(fset, "high.go", highSrc, 0)
-	require.NoError(t, err)
-	nodeHighTest, err := parser.ParseFile(fset, "high_test.go", highTestSrc, 0)
-	require.NoError(t, err)
-
-	rep := reporter.NewMock()
-	pass := New(rep, cfg.GetLayer("high"), cfg)
-	pass.CheckFile(nodeLow)
-	pass.CheckFile(nodeHigh)
-	pass.CheckFile(nodeHighTest)
-
-	// one report for high.go
-	// one report for high_test.go
-	require.Equal(t, 2, len(rep.GetReports()))
-}
-
-func getConfig() *config.Config {
-	commonData := data.New()
-	commonData.AddPackage("high", 10)
-	commonData.AddPackage("low", 5)
-	cfg := config.FromMap(commonData.PackageToLayer())
-	return cfg
+	imports, errs := Imports(file)
+	if len(errs) != 0 || len(imports) != 2 {
+		t.Fatalf("imports=%v errors=%v", imports, errs)
+	}
+	wantPaths := []string{"low/path", "other/path"}
+	for index, ref := range imports {
+		position := fset.Position(ref.Position)
+		if ref.Path != wantPaths[index] || position.Line != 4+index || !strings.HasSuffix(position.Filename, "high.go") {
+			t.Errorf("unexpected import %q at %s", ref.Path, position)
+		}
+	}
 }

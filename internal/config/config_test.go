@@ -1,20 +1,18 @@
 package config
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
+import "testing"
 
 func TestCanGetConfigFromFile(t *testing.T) {
 	cfg, err := FromFile()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	assert.Equal(t, 6, cfg.GetLayer("github.com/gennadyterekhov/import-layers-go/internal/project"))
-	assert.Equal(t, 5, cfg.GetLayer("github.com/gennadyterekhov/import-layers-go/internal/data"))
-	assert.Equal(t, 4, cfg.GetLayer("github.com/gennadyterekhov/import-layers-go/internal/config"))
-	assert.Equal(t, 3, cfg.GetLayer("github.com/gennadyterekhov/import-layers-go/internal/reporter"))
-	assert.Equal(t, 2, cfg.GetLayer("github.com/gennadyterekhov/import-layers-go/internal/filechecker"))
-	assert.Equal(t, 1, cfg.GetLayer("github.com/gennadyterekhov/import-layers-go/internal/analyzer"))
+	for _, name := range []string{"project", "layers", "config", "filechecker", "analyzer", "cli"} {
+		directory := "internal/" + name
+		packagePath := "github.com/gennadyterekhov/import-layers-go/" + directory
+		if layer := cfg.Layers.Match(packagePath, directory); layer.Name != directory {
+			t.Errorf("matching %q: got %q, want %q", packagePath, layer.Name, directory)
+		}
+	}
 }
