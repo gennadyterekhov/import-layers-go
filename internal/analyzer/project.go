@@ -14,10 +14,11 @@ import (
 )
 
 type Request struct {
-	Directory  string
-	ConfigPath string
-	Paths      []string
-	OnFile     func(path string)
+	Directory   string
+	ConfigPath  string
+	Paths       []string
+	OnFile      func(path string)
+	DeferPolicy bool
 }
 
 type Edge struct {
@@ -38,7 +39,23 @@ type Violation struct {
 	ToLayer   string
 }
 
+type Reference struct {
+	From           string
+	To             string
+	ResolvedLayers bool
+	Specifier      string
+	Syntax         []string
+	Targets        []string
+	Line           int
+	FromLayer      string
+	ToLayer        string
+}
+
 type Result struct {
+	Root       string
+	Layers     []string
+	Files      []string
+	References []Reference
 	Graph      Graph
 	Errors     []error
 	Violations []Violation
@@ -76,6 +93,7 @@ func CheckProject(request Request) (Result, error) {
 	result := Result{
 		Graph:  Graph{Nodes: nodes, Edges: []Edge{}},
 		Errors: issues,
+		Root:   string(cfg.Root), Layers: cfg.LayerNames,
 	}
 	fset := token.NewFileSet()
 	for _, relative := range result.Graph.Nodes {
@@ -89,6 +107,7 @@ func CheckProject(request Request) (Result, error) {
 			continue
 		}
 
+		result.Files = append(result.Files, relative)
 		imports, errs := filechecker.Imports(parsed)
 		result.Errors = append(result.Errors, errs...)
 		fromLayer := cfg.Layers.Match(source.packagePath, path.Dir(relative))
@@ -99,6 +118,7 @@ func CheckProject(request Request) (Result, error) {
 				continue
 			}
 			targetDirectory := ""
+			var graphTargets []string
 			for _, filename := range target.GoFiles {
 				to, ok := cfg.Root.RelativePath(filename)
 				if !ok {
@@ -106,14 +126,26 @@ func CheckProject(request Request) (Result, error) {
 				}
 				targetDirectory = path.Dir(to)
 				if _, included := files[to]; included {
-					targetFiles[to] = true
+					if request.DeferPolicy {
+						graphTargets = append(graphTargets, to)
+					} else {
+						targetFiles[to] = true
+					}
 				}
 			}
-			if fromLayer.Name == "" {
-				continue
-			}
 			toLayer := cfg.Layers.Match(ref.Path, targetDirectory)
-			if fromLayer.Forbids(toLayer) {
+			if request.DeferPolicy {
+				position := fset.PositionFor(ref.Position, false)
+				reference := Reference{
+					From: relative, Specifier: ref.Path, Syntax: []string{ref.Path},
+					Line: position.Line, ResolvedLayers: true, FromLayer: fromLayer.Name, ToLayer: toLayer.Name,
+				}
+				if len(graphTargets) > 0 {
+					reference.To = graphTargets[0]
+					reference.Targets = graphTargets[1:]
+				}
+				result.References = append(result.References, reference)
+			} else if fromLayer.Forbids(toLayer) {
 				position := fset.PositionFor(ref.Position, false)
 				result.Violations = append(result.Violations, Violation{
 					File: relative, Line: position.Line, Import: ref.Path,

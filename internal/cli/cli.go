@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gennadyterekhov/import-layers-go/internal/analyzer"
-	"github.com/gennadyterekhov/import-layers-go/internal/layers"
 )
 
 type options struct {
@@ -34,12 +33,17 @@ func Run(cwd string, args []string, stdout, stderr io.Writer) int {
 		debugOutput = stderr
 	}
 	result, err := analyzer.CheckProject(analyzer.Request{
-		Directory: cwd, ConfigPath: opts.configPath, Paths: opts.paths,
+		Directory: cwd, ConfigPath: opts.configPath, Paths: opts.paths, DeferPolicy: true,
 		OnFile: func(path string) { fmt.Fprintln(debugOutput, "processing file "+path) },
 	})
 	if err != nil {
 		return reportError(stderr, err)
 	}
+	pipeline, err := checkGraph(result)
+	if err != nil {
+		return reportError(stderr, err)
+	}
+	result.Graph.Edges = pipeline.Edges
 	if opts.graph {
 		encoder := json.NewEncoder(stdout)
 		encoder.SetIndent("", "  ")
@@ -51,14 +55,13 @@ func Run(cwd string, args []string, stdout, stderr io.Writer) int {
 	for _, message := range result.Errors {
 		fmt.Fprintln(stderr, message)
 	}
-	for _, issue := range result.Violations {
-		fmt.Fprintf(stderr, "%s:%d -> %s: %s (%s -> %s)\n",
-			issue.File, issue.Line, issue.Import, layers.ViolationMessage, issue.FromLayer, issue.ToLayer)
+	for _, issue := range pipeline.Violations {
+		fmt.Fprintln(stderr, issue)
 	}
 	switch {
 	case len(result.Errors) > 0:
 		return 2
-	case len(result.Violations) > 0:
+	case len(pipeline.Violations) > 0:
 		return 1
 	default:
 		if !opts.graph {

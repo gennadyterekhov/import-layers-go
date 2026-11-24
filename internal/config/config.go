@@ -19,6 +19,7 @@ type Config struct {
 	Root        project.Root
 	RootDir     string
 	Layers      layers.Policy
+	LayerNames  []string
 }
 
 func FromFile() (*Config, error) {
@@ -103,7 +104,7 @@ func decode(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg := &Config{Layers: layers.New(names)}
+	cfg := &Config{Layers: layers.New(names), LayerNames: names}
 	if value, present := data["rootDir"]; present {
 		rootDir, ok := value.(string)
 		if !ok {
