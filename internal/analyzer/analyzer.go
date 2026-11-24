@@ -2,12 +2,12 @@ package analyzer
 
 import (
 	"fmt"
-	"go/types"
-	"strings"
+	"os"
 
 	"github.com/gennadyterekhov/import-layers-go/internal/config"
 	"github.com/gennadyterekhov/import-layers-go/internal/filechecker"
-	"github.com/gennadyterekhov/import-layers-go/internal/reporter"
+	"github.com/gennadyterekhov/import-layers-go/internal/layers"
+	"github.com/gennadyterekhov/import-layers-go/internal/project"
 	"golang.org/x/tools/go/analysis"
 )
 
@@ -17,78 +17,38 @@ type Analyzer struct {
 }
 
 func New(config *config.Config) *Analyzer {
-	inst := &Analyzer{
-		config: config,
-	}
-	analyzer := &analysis.Analyzer{
+	inst := &Analyzer{config: config}
+	inst.Analyzer = &analysis.Analyzer{
 		Name: "import_layers",
 		Doc:  "check that higher layer packages do not depend on lower layer packages (dependency rule from clean architecture)",
 		Run:  inst.run,
 	}
-	inst.Analyzer = analyzer
-
 	return inst
 }
 
-func (f *Analyzer) run(pass *analysis.Pass) (interface{}, error) {
+func (a *Analyzer) run(pass *analysis.Pass) (any, error) {
 	if pass.Pkg == nil {
 		return nil, nil
 	}
-	pkgPath := pass.Pkg.Path()
-
-	currentLayer := f.config.GetLayer(pkgPath)
-
-	if f.config.Debug() {
-		fmt.Printf("\nAnalyzer.run pkgName: %v  pkgPath: %v  layer: %v\nignoreTests: %v\n", pass.Pkg.Name(), pkgPath, currentLayer, f.config.IgnoreTests())
-
-		//err := ast.Print(pass.Fset, pass.Pkg)
-		//if err != nil {
-		//	return nil, fmt.Errorf("could not print ast")
-		//}
-	}
-
-	if currentLayer == 0 { //can import anything from layer 0
-		return nil, nil
-	}
-
-	//pkgImports := getPkgImports(pass.Pkg)
-	//// TODO optimize to look for testing in the first place, in one traversal. implement after benchmark
-	//if slices.Contains(pkgImports, "testing") {
-	//	if f.config.IgnoreTests() {
-	//		if f.config.Debug() {
-	//			fmt.Println("    this fileSet contains a test , ignoring")
-	//		}
-	//		return nil, nil
-	//	}
-	//
-	//	if f.config.Debug() {
-	//		fmt.Println("    this fileSet contains a test")
-	//	}
-	//}
-
-	rep := reporter.New(pass.Reportf)
-	fchecker := filechecker.New(rep, currentLayer, f.config)
-
+	source := a.config.Layers.Match(pass.Pkg.Path(), "")
 	for _, file := range pass.Files {
-		fchecker.CheckFile(file)
-	}
-
-	return nil, nil
-}
-
-func getPkgImports(file *types.Package) []string {
-	empty := make([]string, 0)
-	if file == nil {
-		return empty
-	}
-
-	for _, v := range file.Imports() {
-		if v == nil {
+		filename := pass.Fset.PositionFor(file.Pos(), false).Filename
+		if a.config.IgnoreTests && project.IsTestFile(filename) {
 			continue
 		}
+		if a.config.Debug {
+			if relative, ok := a.config.Root.RelativePath(filename); ok {
+				filename = relative
+			}
+			fmt.Fprintln(os.Stderr, "processing file "+filename)
+		}
 
-		empty = append(empty, strings.Trim(v.Path(), "\""))
+		imports, _ := filechecker.Imports(file)
+		for _, ref := range imports {
+			if source.Forbids(a.config.Layers.Match(ref.Path, "")) {
+				pass.Reportf(ref.Position, layers.ViolationMessage)
+			}
+		}
 	}
-
-	return empty
+	return nil, nil
 }
