@@ -32,8 +32,8 @@ func Run(cwd string, args []string, stdout, stderr io.Writer) int {
 	if opts.graph {
 		debugOutput = stderr
 	}
-	result, err := analyzer.CheckProject(analyzer.Request{
-		Directory: cwd, ConfigPath: opts.configPath, Paths: opts.paths, DeferPolicy: true,
+	result, err := analyzer.InspectProject(analyzer.Request{
+		Directory: cwd, ConfigPath: opts.configPath, Paths: opts.paths,
 		OnFile: func(path string) { fmt.Fprintln(debugOutput, "processing file "+path) },
 	})
 	if err != nil {
@@ -43,11 +43,10 @@ func Run(cwd string, args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return reportError(stderr, err)
 	}
-	result.Graph.Edges = pipeline.Edges
 	if opts.graph {
 		encoder := json.NewEncoder(stdout)
 		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(result.Graph); err != nil {
+		if err := encoder.Encode(analyzer.Graph{Nodes: result.Nodes, Edges: pipeline.Edges}); err != nil {
 			return reportError(stderr, err)
 		}
 	}
