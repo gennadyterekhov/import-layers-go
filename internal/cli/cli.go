@@ -33,7 +33,7 @@ func Run(cwd string, args []string, stdout, stderr io.Writer) int {
 		debugOutput = stderr
 	}
 	result, err := analyzer.InspectProject(analyzer.Request{
-		Directory: cwd, ConfigPath: opts.configPath, Paths: opts.paths,
+		Directory: cwd, ConfigPath: opts.configPath, Paths: opts.paths, Parse: parseProject,
 		OnFile: func(path string) { fmt.Fprintln(debugOutput, "processing file "+path) },
 	})
 	if err != nil {

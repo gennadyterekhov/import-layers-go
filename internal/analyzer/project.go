@@ -1,7 +1,9 @@
 package analyzer
 
 import (
-	"go/parser"
+	"encoding/json"
+	"fmt"
+	"go/ast"
 	"go/token"
 	"maps"
 	"path"
@@ -18,6 +20,7 @@ type Request struct {
 	ConfigPath string
 	Paths      []string
 	OnFile     func(path string)
+	Parse      func(string, []string) (Snapshot, error)
 }
 
 type Edge struct {
@@ -42,17 +45,22 @@ type Reference struct {
 	ToLayer        string
 }
 
+type Snapshot struct {
+	Trees  map[string]json.RawMessage
+	Errors map[string][]string
+	Lines  map[string]map[token.Pos]int
+}
+
 type Result struct {
 	Root       string
 	Layers     []string
-	Files      []string
+	Trees      map[string]json.RawMessage
 	References []Reference
 	Nodes      []string
 	Errors     []error
 }
 
 type sourceFile struct {
-	filename    string
 	packagePath string
 	imports     map[string]*packages.Package
 }
@@ -85,20 +93,28 @@ func InspectProject(request Request) (Result, error) {
 		Errors: issues,
 		Root:   string(cfg.Root), Layers: cfg.LayerNames,
 	}
-	fset := token.NewFileSet()
+	snapshot, err := request.Parse(result.Root, nodes)
+	if err != nil {
+		return Result{}, err
+	}
+	result.Trees = snapshot.Trees
 	for _, relative := range result.Nodes {
 		if cfg.Debug && request.OnFile != nil {
 			request.OnFile(relative)
 		}
 		source := files[relative]
-		parsed, err := parser.ParseFile(fset, source.filename, nil, parser.SkipObjectResolution)
-		if err != nil {
-			result.Errors = append(result.Errors, err)
+		for _, problem := range snapshot.Errors[relative] {
+			result.Errors = append(result.Errors, fmt.Errorf("%s", problem))
+		}
+		data, ok := snapshot.Trees[relative]
+		if !ok {
 			continue
 		}
-
-		result.Files = append(result.Files, relative)
-		imports, errs := filechecker.Imports(parsed)
+		var parsed struct{ Imports []*ast.ImportSpec }
+		if err := json.Unmarshal(data, &parsed); err != nil {
+			return Result{}, fmt.Errorf("%s: %w", relative, err)
+		}
+		imports, errs := filechecker.Imports(&ast.File{Imports: parsed.Imports})
 		result.Errors = append(result.Errors, errs...)
 		fromLayer := cfg.Layers.Match(source.packagePath, path.Dir(relative))
 		for _, ref := range imports {
@@ -121,7 +137,7 @@ func InspectProject(request Request) (Result, error) {
 			toLayer := cfg.Layers.Match(ref.Path, targetDirectory)
 			reference := Reference{
 				From: relative, Specifier: ref.Path, Syntax: []string{ref.Path},
-				Line:           fset.PositionFor(ref.Position, false).Line,
+				Line:           snapshot.Lines[relative][ref.Position],
 				ResolvedLayers: true, FromLayer: fromLayer.Name, ToLayer: toLayer.Name,
 			}
 			if len(graphTargets) > 0 {
@@ -150,7 +166,6 @@ func collectFiles(roots []*packages.Package, cfg *config.Config, selection proje
 			source, found := files[relative]
 			if !found {
 				source = sourceFile{
-					filename:    filename,
 					packagePath: pkg.PkgPath,
 					imports:     make(map[string]*packages.Package, len(pkg.Imports)),
 				}
